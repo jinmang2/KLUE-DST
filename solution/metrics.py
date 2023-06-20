@@ -118,7 +118,7 @@ def get_compute_metrics(recover_state, id2label):
         ]
         gts = preds.label_ids.tolist()
         gts = [
-            [id2label[label_id] for label_id in label_ids if label_id != 0]
+            [id2label[label_id] for label_id in label_ids if label_id not in [0, -100]]
             for label_ids in gts
         ]
 
