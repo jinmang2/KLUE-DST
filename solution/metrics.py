@@ -107,7 +107,7 @@ def wos_slot_micro_f1(
     return f1_score * 100.0
 
 
-def get_compute_metrics(recover_state):
+def get_compute_metrics(recover_state, id2label):
     def compute_metrics(preds):
         point_outputs = preds.predictions[0]  # generated_ids
         gate_outputs = preds.predictions[1]  # gated_ids

@@ -97,7 +97,7 @@ def main():
     model.decoder.set_slot_idx(slot_vocab)
 
     recover_state = get_recover_state_fn(slot_meta, id2gating, tokenizer)
-    compute_metrics = get_compute_metrics(recover_state)
+    compute_metrics = get_compute_metrics(recover_state, id2label)
 
     training_args = TrainingArguments(
         output_dir="outputs",
