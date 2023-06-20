@@ -11,11 +11,10 @@ from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 from transformers.modeling_outputs import ModelOutput
 
+
 # loss_gen
 def masked_cross_entropy_for_value(
-    logits: torch.Tensor,
-    target: torch.Tensor,
-    pad_idx: int = 0
+    logits: torch.Tensor, target: torch.Tensor, pad_idx: int = 0
 ) -> torch.Tensor:
     mask = target.ne(pad_idx)
     logits_flat = logits.view(-1, logits.size(-1))
@@ -29,12 +28,8 @@ def masked_cross_entropy_for_value(
 
 
 class RobertaConfig(RobertaConfig):
-
     def __init__(
-        self,
-        teacher_forcing: float = 0.5,
-        parallel_decoding: bool = True,
-        **kwargs
+        self, teacher_forcing: float = 0.5, parallel_decoding: bool = True, **kwargs
     ):
         super().__init__(**kwargs)
         self.teacher_forcing = teacher_forcing
@@ -49,6 +44,7 @@ class DialogueStateTrackingOutput(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
 
+
 class SlotGenerator(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -60,16 +56,14 @@ class SlotGenerator(nn.Module):
         self.embed = nn.Embedding(
             num_embeddings=self.vocab_size,
             embedding_dim=self.hidden_size,
-            padding_idx=self.pad_token_id
+            padding_idx=self.pad_token_id,
         )  # shared with encoder
 
         self.gru = nn.GRU(
-            input_size=self.hidden_size,
-            hidden_size=self.hidden_size,
-            batch_first=True
+            input_size=self.hidden_size, hidden_size=self.hidden_size, batch_first=True
         )
 
-        self.gating2id = {"none": 0, "dontcare": 1, "ptr": 2, "yes":3, "no": 4}
+        self.gating2id = {"none": 0, "dontcare": 1, "ptr": 2, "yes": 3, "no": 4}
         self.id2gating = {v: k for k, v in self.gating2id.items()}
 
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -114,8 +108,12 @@ class SlotGenerator(nn.Module):
         J = slot_e.size(0)
 
         if self.parallel_decoding:
-            all_point_outputs = torch.zeros(batch_size, J, max_len, self.vocab_size).to(input_ids.device)
-            all_gate_outputs = torch.zeros(batch_size, J, self.num_gates).to(input_ids.device)
+            all_point_outputs = torch.zeros(batch_size, J, max_len, self.vocab_size).to(
+                input_ids.device
+            )
+            all_gate_outputs = torch.zeros(batch_size, J, self.num_gates).to(
+                input_ids.device
+            )
 
             w = slot_e.repeat(batch_size, 1).unsqueeze(1)
             hidden = hidden.repeat_interleave(J, dim=1)
@@ -126,8 +124,12 @@ class SlotGenerator(nn.Module):
 
         else:
             # Seperate Decoding
-            all_point_outputs = torch.zeros(J, batch_size, max_len, self.vocab_size).to(input_ids.device)
-            all_gate_outputs = torch.zeros(J, batch_size, self.num_gates).to(input_ids.device)
+            all_point_outputs = torch.zeros(J, batch_size, max_len, self.vocab_size).to(
+                input_ids.device
+            )
+            all_gate_outputs = torch.zeros(J, batch_size, self.num_gates).to(
+                input_ids.device
+            )
             num_decoding = J
 
         for j in range(num_decoding):
@@ -141,17 +143,21 @@ class SlotGenerator(nn.Module):
 
                 # B,T,D * B,D,1 => B,T
                 attn_e = torch.bmm(encoder_output, hidden.permute(1, 2, 0))  # B,T,1
-                MASKED_VALUE = (2 ** 15) if attn_e.dtype == torch.half else 1e9
+                MASKED_VALUE = (2**15) if attn_e.dtype == torch.half else 1e9
                 attn_e = attn_e.squeeze(-1).masked_fill(input_masks, -MASKED_VALUE)
                 attn_history = F.softmax(attn_e, -1)  # B,T
 
                 # B,D * D,V => B,V
-                attn_v = torch.matmul(hidden.squeeze(0), self.embed.weight.transpose(0, 1))  # B,V
+                attn_v = torch.matmul(
+                    hidden.squeeze(0), self.embed.weight.transpose(0, 1)
+                )  # B,V
                 attn_vocab = F.softmax(attn_v, -1)
 
                 # B,1,T * B,T,D => B,1,D
                 context = torch.bmm(attn_history.unsqueeze(1), encoder_output)  # B,1,D
-                p_gen = torch.sigmoid(self.w_gen(torch.cat([w, hidden.transpose(0, 1), context], -1)))  # B,1
+                p_gen = torch.sigmoid(
+                    self.w_gen(torch.cat([w, hidden.transpose(0, 1), context], -1))
+                )  # B,1
                 p_gen = p_gen.squeeze(-1)
 
                 p_context_ptr = torch.zeros_like(attn_vocab).to(input_ids.device)
@@ -170,13 +176,17 @@ class SlotGenerator(nn.Module):
                 if k == 0:
                     gated_logit = self.w_gate(context.squeeze(1))  # B,3
                     if self.parallel_decoding:
-                        all_gate_outputs = gated_logit.view(batch_size, J, self.num_gates)
+                        all_gate_outputs = gated_logit.view(
+                            batch_size, J, self.num_gates
+                        )
                     else:
                         _, gated = gated_logit.max(1)  # maybe `-1` would be more clear
                         all_gate_outputs[j] = gated_logit
 
                 if self.parallel_decoding:
-                    all_point_outputs[:, :, k, :] = p_final.view(batch_size, J, self.vocab_size)
+                    all_point_outputs[:, :, k, :] = p_final.view(
+                        batch_size, J, self.vocab_size
+                    )
                 else:
                     all_point_outputs[j, :, k, :] = p_final
 
@@ -185,6 +195,7 @@ class SlotGenerator(nn.Module):
             all_gate_outputs = all_gate_outputs.transpose(0, 1)
 
         return all_point_outputs, all_gate_outputs
+
 
 class RobertaForDialogueStateTracking(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
@@ -229,8 +240,8 @@ class RobertaForDialogueStateTracking(RobertaPreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        encoder_output = outputs[0] # last_hidden_state
-        pooler_output = outputs[1].unsqueeze(0) # pooler_output
+        encoder_output = outputs[0]  # last_hidden_state
+        pooler_output = outputs[1].unsqueeze(0)  # pooler_output
 
         max_len, teacher = 10, None
         if target_ids is not None:
@@ -264,10 +275,16 @@ class RobertaForDialogueStateTracking(RobertaPreTrainedModel):
             # total loss = generation loss + gate loss
             loss = loss_gen + loss_gate
 
-        all_point_outputs = all_point_outputs.permute(0, 2, 1, 3)
+        # (bsz, j, k, vocab_size) -> (bsz, k, j)
+        all_point_outputs = all_point_outputs.permute(0, 2, 1, 3).argmax(-1)
+        # (bsz, j, n_gates) -> (bsz, j)
+        all_gate_outputs = all_gate_outputs.argmax(-1)
 
         if not return_dict:
-            output = (all_point_outputs, all_gate_outputs,) + outputs[2:]
+            output = (
+                all_point_outputs,
+                all_gate_outputs,
+            ) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
         return DialogueStateTrackingOutput(

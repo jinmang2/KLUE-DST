@@ -3,6 +3,7 @@ import json
 import tarfile
 from functools import partial
 from datasets.utils.py_utils import NestedDataStructure
+
 # https://github.com/huggingface/datasets/pull/3815
 # from datasets.utils.download_manager import ArchiveIterable
 from datasets.utils.file_utils import (
@@ -17,7 +18,6 @@ data_url = "http://klue-benchmark.com.s3.amazonaws.com/app/Competitions/000073/d
 
 
 def iter_archive(path: str):
-
     def _iter_archive(f):
         stream = tarfile.open(fileobj=f, mode="r|*")
         for tarinfo in stream:
@@ -26,7 +26,10 @@ def iter_archive(path: str):
                 continue
             if file_path is None:
                 continue
-            if os.path.basename(file_path).startswith(".") or os.path.basename(file_path).startswith("__"):
+            if (
+                os.path.basename(file_path).startswith(".")
+                or os.path.basename(file_path).startswith("__")
+            ):
                 # skipping hidden files
                 continue
             file_obj = stream.extractfile(tarinfo)

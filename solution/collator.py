@@ -3,7 +3,6 @@ import torch
 
 
 class PadCollator:
-
     def __init__(self, tokenizer, max_seq_length=None):
         self.tokenizer = tokenizer
         if max_seq_length is None:
@@ -36,7 +35,7 @@ class PadCollator:
             _ = inputs.pop("guid", None)
             target_id = inputs.pop("target_ids", None)
             if target_id is not None:
-                target_id = torch.LongTensor(target_id)[:, 1:] # remove [CLS] token id
+                target_id = torch.LongTensor(target_id)[:, 1:]  # remove [CLS] token id
                 target_max_length = max(target_max_length, target_id.size(-1))
                 target_ids.append(target_id)
             label = inputs.pop("labels", None)
@@ -47,18 +46,20 @@ class PadCollator:
             arrays=target_ids,
             pad_idx=self.tokenizer.pad_token_id,
             pad_on_right=self.pad_on_right,
-            max_length=target_max_length
+            max_length=target_max_length,
         )
 
         batch = self.tokenizer.pad(
             features,
             padding="longest",
             max_length=self.max_seq_length,
-            return_tensors="pt"
+            return_tensors="pt",
         )
 
         max_len = max(len(label) for label in labels)
-        labels = torch.LongTensor([label + [0] * (max_len - len(label)) for label in labels])
+        labels = torch.LongTensor(
+            [label + [0] * (max_len - len(label)) for label in labels]
+        )
 
         batch.update({"target_ids": target_ids, "labels": labels})
 

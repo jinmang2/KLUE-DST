@@ -18,10 +18,7 @@ def build_slot_from_ontology(file_path: str = "ontology.json"):
     return domains, slots
 
 
-def split_slot(
-    dom_slot_value: str,
-    get_domain_slot: bool = False
-) -> Tuple[str, ...]:
+def split_slot(dom_slot_value: str, get_domain_slot: bool = False) -> Tuple[str, ...]:
     try:
         dom, slot, value = dom_slot_value.split("-")
     except ValueError:
@@ -79,10 +76,12 @@ def get_slot_meta(
 
 
 def get_examples_from_dialogues_fn(tokenizer):
-
     def get_examples_from_dialogues(dialogues):
         dialogue_examples = {
-            "guid": [], "context_turns": [], "current_turn": [], "label": []
+            "guid": [],
+            "context_turns": [],
+            "current_turn": [],
+            "label": [],
         }
         for guid, dialogue in zip(dialogues["guid"], dialogues["dialogue"]):
             d_idx = 0
@@ -91,7 +90,7 @@ def get_examples_from_dialogues_fn(tokenizer):
                 if turn["role"] != "user":
                     continue
 
-                sys_uttr = dialogue[idx-1]["text"] if idx else ""
+                sys_uttr = dialogue[idx - 1]["text"] if idx else ""
 
                 current_text = tokenizer.tokenize(
                     sys_uttr, turn["text"], add_special_tokens=True
@@ -117,7 +116,6 @@ def get_examples_from_dialogues_fn(tokenizer):
 
 
 def get_convert_examples_to_features_fn(tokenizer, slot_meta, gating2id, label2id):
-
     def convert_examples_to_features(examples):
         assert tokenizer.truncation_side == "left", (
             "DialogueStateTracking's feature form is `[dialogue history][SEP][user_uttr_{t}][SEP][sys_uttr_{t}]` "
@@ -149,7 +147,9 @@ def get_convert_examples_to_features_fn(tokenizer, slot_meta, gating2id, label2i
             dialogue_features["guid"].append(guid)
             dialogue_features["target_ids"].append(target_ids)
             dialogue_features["gating_ids"].append(gating_ids)
-            dialogue_features["labels"].append([label2id.get(label, 0) for label in labels])
+            dialogue_features["labels"].append(
+                [label2id.get(label, 0) for label in labels]
+            )
 
         dialogue_features["gating_ids"] = dialogue_features["gating_ids"]
 
