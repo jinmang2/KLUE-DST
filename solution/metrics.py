@@ -7,11 +7,9 @@ def get_recover_state_fn(
     id2gating: Dict[int, str],
     tokenizer: PreTrainedTokenizerBase,
 ):
-
     def recover_state(
         gate_list: List[int],
         gen_list: List[List[int]],
-
     ) -> List[str]:
         assert len(gate_list) == len(slot_meta)
         assert len(gen_list) == len(slot_meta)
@@ -36,9 +34,11 @@ def get_recover_state_fn(
                 # (using punctuation split)
                 value = value.replace(" : ", ":").replace(" , ", ", ").replace("##", "")
             else:
-                raise ValueError(f"f{id2gating[gate]} do not support. [none|dontcare|ptr|yes|no]")
+                raise ValueError(
+                    f"f{id2gating[gate]} do not support. [none|dontcare|ptr|yes|no]"
+                )
 
-            if value == "none": # type: ignore[comparison-overlap]
+            if value == "none":  # type: ignore[comparison-overlap]
                 continue
 
         recovered.append("%s-%s" % (slot, value))
@@ -49,8 +49,7 @@ def get_recover_state_fn(
 
 # joint goal acc
 def wos_jga(
-    pred_steps: Sequence[Sequence[str]],
-    trgt_steps: Sequence[Sequence[str]]
+    pred_steps: Sequence[Sequence[str]], trgt_steps: Sequence[Sequence[str]]
 ) -> Any:
     total, joint_goal_acc = 0, 0
     for (pred_batch, trgt_batch) in zip(pred_steps, trgt_steps):
@@ -65,8 +64,7 @@ def wos_jga(
 
 # slot micro f1
 def compute_prf_for_wos(
-    gold: Sequence[str],
-    pred: Sequence[str]
+    gold: Sequence[str], pred: Sequence[str]
 ) -> Tuple[float, float, float, float]:
     """Most of the below code is from https://github.com/jasonwu0731/trade-dst"""
     tp, fp, fn = 0, 0, 0
@@ -82,7 +80,11 @@ def compute_prf_for_wos(
                 fp += 1
         precision = tp / float(tp + fp) if (tp + fp) != 0 else 0
         recall = tp / float(tp + fn) if (tp + fn) != 0 else 0
-        f1 = 2 * precision * recall / float(precision + recall) if (precision + recall) != 0 else 0
+        f1 = (
+            2 * precision * recall / float(precision + recall)
+            if (precision + recall) != 0
+            else 0
+        )
     else:
         if len(pred) == 0:
             precision, recall, f1, count = 1, 1, 1, 1
@@ -92,8 +94,7 @@ def compute_prf_for_wos(
 
 
 def wos_slot_micro_f1(
-    pred_steps: Sequence[Sequence[str]],
-    trgt_steps: Sequence[Sequence[str]]
+    pred_steps: Sequence[Sequence[str]], trgt_steps: Sequence[Sequence[str]]
 ) -> Any:
     count, f1 = 0, 0
     for (pred_batch, trgt_batch) in zip(pred_steps, trgt_steps):
@@ -107,7 +108,6 @@ def wos_slot_micro_f1(
 
 
 def get_compute_metrics(recover_state):
-
     def compute_metrics(preds):
         point_outputs = preds.predictions[0].permute(0, 2, 1, 3)
         gate_outputs = preds.predictions[1]
@@ -120,7 +120,10 @@ def get_compute_metrics(recover_state):
             for gate, gen in zip(gated_ids.tolist(), generated_ids.tolist())
         ]
         gts = preds.label_ids.tolist()
-        gts = [[id2label[label_id] for label_id in label_ids if label_id != 0] for label_ids in gts]
+        gts = [
+            [id2label[label_id] for label_id in label_ids if label_id != 0]
+            for label_ids in gts
+        ]
 
         return {
             "joint_goal_acc": wos_jga(prs, gts),

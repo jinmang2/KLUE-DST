@@ -7,12 +7,9 @@ from transformers import TrainingArguments, Trainer
 from solution.preprocessing import (
     get_slot_meta,
     get_examples_from_dialogues_fn,
-    get_convert_examples_to_features_fn
+    get_convert_examples_to_features_fn,
 )
-from solution.model import (
-    RobertaConfig,
-    RobertaForDialogueStateTracking
-)
+from solution.model import RobertaConfig, RobertaForDialogueStateTracking
 from solution.metrics import (
     get_recover_state_fn,
     get_compute_metrics,
