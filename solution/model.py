@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 from transformers.modeling_outputs import ModelOutput
 
+
 # loss_gen
 def masked_cross_entropy_for_value(
     logits: torch.Tensor, target: torch.Tensor, pad_idx: int = 0
@@ -273,8 +274,6 @@ class RobertaForDialogueStateTracking(RobertaPreTrainedModel):
             )
             # total loss = generation loss + gate loss
             loss = loss_gen + loss_gate
-
-        all_point_outputs = all_point_outputs.permute(0, 2, 1, 3)
 
         if not return_dict:
             output = (
