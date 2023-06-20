@@ -275,6 +275,11 @@ class RobertaForDialogueStateTracking(RobertaPreTrainedModel):
             # total loss = generation loss + gate loss
             loss = loss_gen + loss_gate
 
+        # (bsz, j, k, vocab_size) -> (bsz, j, k)
+        all_point_outputs = all_point_outputs.argmax(-1)
+        # (bsz, j, n_gates) -> (bsz, j)
+        all_gate_outputs = all_gate_outputs.argmax(-1)
+
         if not return_dict:
             output = (
                 all_point_outputs,

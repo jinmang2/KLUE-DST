@@ -109,15 +109,12 @@ def wos_slot_micro_f1(
 
 def get_compute_metrics(recover_state):
     def compute_metrics(preds):
-        point_outputs = preds.predictions[0]
-        gate_outputs = preds.predictions[1]
-
-        generated_ids = point_outputs.argmax(-1)
-        gated_ids = gate_outputs.argmax(-1)
+        point_outputs = preds.predictions[0]  # generated_ids
+        gate_outputs = preds.predictions[1]  # gated_ids
 
         prs = [
             recover_state(gate, gen)
-            for gate, gen in zip(gated_ids.tolist(), generated_ids.tolist())
+            for gate, gen in zip(gate_outputs.tolist(), point_outputs.tolist())
         ]
         gts = preds.label_ids.tolist()
         gts = [
