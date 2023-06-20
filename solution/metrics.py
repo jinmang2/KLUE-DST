@@ -109,7 +109,7 @@ def wos_slot_micro_f1(
 
 def get_compute_metrics(recover_state, id2label):
     def compute_metrics(preds):
-        point_outputs = preds.predictions[0]  # generated_ids
+        point_outputs = preds.predictions[0].permute(0, 2, 1)  # generated_ids
         gate_outputs = preds.predictions[1]  # gated_ids
 
         prs = [
