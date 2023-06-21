@@ -14,6 +14,9 @@ def get_recover_state_fn(
         assert len(gate_list) == len(slot_meta)
         assert len(gen_list) == len(slot_meta)
 
+        hf_padding_idx = -100
+        all_special_ids = tokenizer.all_special_ids + [hf_padding_idx]
+
         recovered = []
         for slot, gate, value in zip(slot_meta, gate_list, gen_list):
             gate = id2gating.get(gate, "none")
@@ -26,7 +29,7 @@ def get_recover_state_fn(
                 # Append a token until special tokens appear
                 token_id_list = []
                 for id_ in value:
-                    if id_ in tokenizer.all_special_ids:
+                    if id_ in all_special_ids:
                         break
                     token_id_list.append(id_)
                 value = tokenizer.decode(token_id_list, skip_special_tokens=True)
