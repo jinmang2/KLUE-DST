@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Union, Sequence
+from typing import List, Dict, Tuple, Union, Sequence, Callable
 from datasets import Dataset
 from copy import deepcopy
 import torch
@@ -6,7 +6,7 @@ import torch
 from .load_ontology import load_json_file
 
 
-def build_slot_from_ontology(file_path: str = "ontology.json"):
+def build_slot_from_ontology(file_path: str = "ontology.json") -> Tuple[List[str], List[str]]:
     domains, slots = [], []
 
     ontology = load_json_file(file_path)
@@ -75,8 +75,8 @@ def get_slot_meta(
     return slot_meta
 
 
-def get_examples_from_dialogues_fn(tokenizer):
-    def get_examples_from_dialogues(dialogues):
+def get_examples_from_dialogues_fn(tokenizer: "PreTrainedTokenizerBase") -> Callable:
+    def get_examples_from_dialogues(dialogues) -> Dict[str, List]:
         dialogue_examples = {
             "guid": [],
             "context_turns": [],
@@ -115,7 +115,12 @@ def get_examples_from_dialogues_fn(tokenizer):
     return get_examples_from_dialogues
 
 
-def get_convert_examples_to_features_fn(tokenizer, slot_meta, gating2id, label2id):
+def get_convert_examples_to_features_fn(
+    tokenizer: "PreTrainedTokenizerBase",
+    slot_meta: List[str],
+    gating2id: Dict[str, str],
+    label2id: Dict[str, str],
+) -> Callable:
     def convert_examples_to_features(examples):
         assert tokenizer.truncation_side == "left", (
             "DialogueStateTracking's feature form is `[dialogue history][SEP][user_uttr_{t}][SEP][sys_uttr_{t}]` "
